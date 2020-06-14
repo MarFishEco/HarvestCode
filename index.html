@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<title>Graylight Media</title>
+<head>
+  <meta charset="utf-8" />
+
+  <!--jQuery UI stuff-->
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+  <!--<script src="http://code.jquery.com/jquery-1.9.1.js"></script>-->
+  <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+
+  <!--Stylesheet-->
+  <link rel="stylesheet" href="inc/style.css" />
+  
+  <!--Custom JS-->
+  <script type="text/javascript" src="inc/initiators.js"></script>
+  
+  <meta name='viewport' content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <script src="https://api.mapbox.com/mapbox.js/v2.2.3/mapbox.js"></script>
+  <link href="https://api.mapbox.com/mapbox.js/v2.2.3/mapbox.css" rel="stylesheet" />
+  
+  <!--Fonts-->
+  <link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet"><!--FontAwesome-->
+  <link href="http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,400,300,600,700" rel="stylesheet" type="text/css"><!--Open Sans-->
+  
+  <script src="src/water.js"></script>
+  
+  <script>
+    $(function() {
+      $( "#dialog" ).dialog({
+	modal: true
+      });
+    });
+  </script>
+ 
+  <!--[if lte IE 8]>
+    <link href='http://api.tiles.mapbox.com/mapbox.js/v1.3.1/mapbox.ie.css' rel='stylesheet' >
+  <![endif]-->
+
+</head>
+
+<body>
+  <div id="dialog" title="ODFW Stream Codes">
+      
+    <div class="note">
+      	<p>Upon landing and keeping an adult salmon, steelhead, or legal size sturgeon, the angler must IMMEDIATELY enter the codes for the species caught, the stream code, and the month/day of catch.</p>
+	<p>Areas listed may include areas not currently open for fishing.</p>
+	<p>Check regulations for up-to-date information.  Use at your own risk.</p>
+	<p><i>This product is for reference only.</i></p>
+    </div><!--.note-->
+  </div><!--#dialog-->
+
+<div id='map-ui'>
+  <p><a class="switch" href="#">Angling Zones</a></p>
+
+  <ul>
+	  <li><a href="#" data-position1="45.0886, -123.6660">Northwest</a></li>
+	<li><a href='#' data-position1='44.6488, -122.6590'>Willamette</a></li>
+    <li><a href='#' data-position1='42.8542, -123.3380'>Southwest</a></li>
+	<li><a href='#' data-position1='45.2235, -118.8790'>Northeast</a></li>
+	<li><a href='#' data-position1='44.3797, -121.0200'>Central</a></li>
+    <li><a href='#' data-position1='43.1471, -119.1490'>Southeast</a></li>
+    <li><a href='#' data-position2='44, -120'>All Oregon</a></li>
+	</ul>
+</div>
+
+<div id='map'></div>
+
+<div id="info">
+  <abbr rel="tooltip" title="<p><b>Hover</b> over a river or bay to get the harvest location code and name</p><p><b>Click</b> to obtain GPS coordinates">i</abbr>
+</div><!--#info-->
+
+
+<div id='legend-content' style='display: none;'></div>
+
+<script type='text/javascript'>
+	// map settings
+	L.mapbox.accessToken = 'pk.eyJ1IjoiZ2VvaW50ZXJlc3QiLCJhIjoiQ2czbnlDMCJ9.pQ-_LxzHCL6WqMm5rJrEWw';
+	var map = L.mapbox.map('map', 'mapbox.streets', { zoomControl: false }).setView([44, -120], 7);
+	map.options.maxZoom = 15;map.options.minZoom = 6;
+	map.legendControl.addLegend(document.getElementById('legend-content').innerHTML);
+	map.gridControl.options.follow = true;
+	new L.Control.Zoom({ position: 'topleft' }).addTo(map);
+	L.control.scale({ position: 'bottomleft' }).addTo(map);
+	  
+	L.control({ position: 'topleft' })
+	map.attributionControl.setPrefix('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mapping portal by <a href="mailto:chris@graylightmedia.com" target="_top">Graylight Media</a>');
+	  
+	// add tooltips
+	var RB_TL = L.mapbox.gridLayer('geointerest.OregonRiversBays_TL');
+	map.addLayer(RB_TL);
+	map.addControl(L.mapbox.gridControl(RB_TL));
+
+ 	var RB_BL = L.mapbox.gridLayer('graylight.OregonRiversBays_BL');
+	map.addLayer(RB_BL);
+	map.addControl(L.mapbox.gridControl(RB_BL));
+ 	
+	var RB_TR = L.mapbox.gridLayer('graylight.OregonRiversBays_TR');
+	map.addLayer(RB_TR);
+	map.addControl(L.mapbox.gridControl(RB_TR)); 
+	
+	// combine layers
+	var TL = L.mapbox.tileLayer('geointerest.OregonRiversBays_TL');
+	var BL = L.mapbox.tileLayer('graylight.OregonRiversBays_BL');	
+	var TR = L.mapbox.tileLayer('graylight.OregonRiversBays_TR');	
+    var OR_RB_CMB = L.layerGroup([TL, BL, TR]);
+	
+	var OSM = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+	//var Terrain = L.tileLayer('http://a.tiles.mapbox.com/v3/mapbox.mapbox-warden/{z}/{x}/{y}.png');
+	
+	// add layers
+	L.control.layers({
+		'Streets & Terrain': L.mapbox.tileLayer('mapbox.streets').addTo(map),
+		'Topo (detailed)': L.mapbox.tileLayer('geointerest.e4qjes5f'),
+		'Satellite': L.mapbox.tileLayer('geointerest.map-dqz2pa8r'),
+		'OpenStreetMap': OSM,
+	}, {
+		'Rivers and Bays': OR_RB_CMB.addTo(map),
+		'Angler Zones': L.mapbox.tileLayer('graylight.OregonCntyAngZone').addTo(map),
+	}, {position: 'topleft', collapsed: false}).addTo(map);
+
+	// zoom levels for quick zooms
+	document.getElementById('map-ui').onclick = function(e) {
+    var pos = e.target.getAttribute('data-position1');	
+    if (pos) {
+        var loc = pos.split(',');
+        map.setView(loc, 8);
+    }
+	var pos = e.target.getAttribute('data-position2');
+    if (pos) {
+        var loc = pos.split(',');
+        map.setView(loc, 7);
+    }
+}
+	// lat and long click
+	var popup = L.popup();
+	function onMapClick(e) {
+    popup
+        .setLatLng(e.latlng)
+        .setContent(e.latlng.toString())
+        .openOn(map);
+	}
+	map.on('click', onMapClick);
+
+    // set base style of vector data
+    function style(feature) {
+      return {
+        weight: 0,
+        fillOpacity: 0.0,
+        fillColor: '#ffff99'
+      };
+    }
+
+    // set hover colors
+    function highlightFeature(e) {
+      var layer = e.target;
+      layer.setStyle({
+        weight: 9,
+        opacity: 0.45,
+        color: '#ffff99', // blue = '#09F'
+        dashArray: '3',
+      });
+    }
+
+    // a function to reset the colors when a neighborhood is not longer 'hovered'
+    function resetHighlight(e) {
+      geojson.resetStyle(e.target);
+    }
+
+    // tell MapBox.js what functions to call when mousing over and out of a neighborhood
+    function onEachFeature(feature, layer) {
+      layer.on({
+        mouseover: highlightFeature,
+        mouseout: resetHighlight
+      });
+    }
+
+    // Add vector data to map
+    geojson = L.geoJson(water, {
+      style: style,
+      onEachFeature: onEachFeature
+    }).addTo(map);
+
+    // Manipulate the z-index of tile layers,
+    // this makes sure our vector data shows up above the background map and
+    // under roads and labels.
+    var topPane = map._createPane('leaflet-top-pane', map.getPanes().mapPane);
+    var topLayer = L.mapbox.tileLayer('graylight.OregonRivers').addTo(map);
+    topPane.appendChild(topLayer.getContainer());
+    topLayer.setZIndex(6);
+	
+</script>
+</body>
+</html>
